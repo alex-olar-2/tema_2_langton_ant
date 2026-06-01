@@ -1,17 +1,17 @@
 Rezultate Benchmarking - Strong Scaling
-Data: Mon Jun  1 02:39:12 PM EEST 2026
+Data: Mon Jun  1 02:42:23 PM EEST 2026
 ----------------------------------------
 >> Test cu 1 proces(e):
 Salvat cadru la pasul 0 in folderul imagini/
-Simulare MPI finalizata! Timp executie: 0.012086 secunde pe 1 procese.
+Simulare MPI finalizata! Timp executie: 0.011879 secunde pe 1 procese.
 ----------------------------------------
 >> Test cu 2 proces(e):
 Salvat cadru la pasul 0 in folderul imagini/
-Simulare MPI finalizata! Timp executie: 0.021314 secunde pe 2 procese.
+Simulare MPI finalizata! Timp executie: 0.021388 secunde pe 2 procese.
 ----------------------------------------
 >> Test cu 4 proces(e):
 Salvat cadru la pasul 0 in folderul imagini/
-Simulare MPI finalizata! Timp executie: 0.022797 secunde pe 4 procese.
+Simulare MPI finalizata! Timp executie: 0.023175 secunde pe 4 procese.
 ----------------------------------------
 >> Test cu 8 proces(e):
 ----------------------------------------
