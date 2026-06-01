@@ -70,6 +70,10 @@ int main(int argc, char **argv) {
 
     Ant send_up[MAX_ANTS_PER_PROC], send_down[MAX_ANTS_PER_PROC];
 
+// Sincronizam toate procesele inainte de a porni cronometrul
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start_time = MPI_Wtime(); // Pornim cronometrul
+
     for (int step = 0; step <= T; step++) {
         
         // --- NOU: Colectarea periodica ---
@@ -149,6 +153,13 @@ int main(int argc, char **argv) {
             }
         }
         MPI_Waitall(req_count, reqs, MPI_STATUSES_IGNORE);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    double end_time = MPI_Wtime();
+
+    if (rank == 0) {
+        printf("Simulare finalizata! Timp executie: %f secunde pe %d procese.\n", end_time - start_time, size);
     }
 
     if (rank == 0) free(global_grid);
