@@ -36,6 +36,9 @@ Clonarea repository-ului și crearea directoarelor necesare (dacă nu au fost de
 git clone git@github.com:UsernameTau/tema_2_langton_ant.git
 cd tema_2_langton_ant
 mkdir -p executabile imagini rezultate scripturi
+```
+
+---
 
 ### Compilarea versiunii secvențiale:
 
