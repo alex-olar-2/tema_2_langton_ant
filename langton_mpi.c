@@ -12,22 +12,24 @@ typedef struct {
     int local_x, y, dir;
 } Ant;
 
-// Functie pentru salvarea grilei complete
 void save_frame(int *global_grid, int N, int step) {
-    char filename[64];
-    sprintf(filename, "frame_%05d.ppm", step);
+    char filename[128];
+    // MODIFICARE: Redirectionam fisierele de tip cadru in folderul 'imagini'
+    sprintf(filename, "imagini/frame_%05d.ppm", step);
     
     FILE *f = fopen(filename, "w");
-    if (!f) return;
+    if (!f) {
+        printf("Eroare deschidere fisier %s\n", filename);
+        return;
+    }
     
     fprintf(f, "P3\n%d %d\n255\n", N, N);
     for (int i = 0; i < N * N; i++) {
         if (global_grid[i] == 0) {
-            fprintf(f, "255 255 255 "); // Alb
+            fprintf(f, "255 255 255 "); 
         } else {
-            fprintf(f, "0 0 0 ");       // Negru
+            fprintf(f, "0 0 0 ");       
         }
-        // Un newline din cand in cand pentru lizibilitatea fisierului
         if ((i + 1) % N == 0) fprintf(f, "\n");
     }
     fclose(f);
@@ -41,8 +43,8 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int N = 100; 
-    int T = 12000; // Suficient pentru a vedea formarea "highway-ului"
-    int K = 100;   // Colectam date o data la K pasi
+    int T = 12000; 
+    int K = 20000; // Valoare mare pentru a nu umple disc-ul cand testam pe timpi (benchmarking)
     
     int local_N = N / size;
     int *local_grid = (int *)calloc((local_N + 2) * N, sizeof(int));
@@ -62,7 +64,6 @@ int main(int argc, char **argv) {
     Ant local_ants[MAX_ANTS_PER_PROC];
     int num_local_ants = 0;
 
-    // Doar procesul 0 initiaza o furnica (ea va migra ulterior in celelalte procese)
     if (rank == 0) {
         local_ants[0] = (Ant){local_N / 2 + 1, N / 2, 0};
         num_local_ants = 1;
@@ -70,26 +71,23 @@ int main(int argc, char **argv) {
 
     Ant send_up[MAX_ANTS_PER_PROC], send_down[MAX_ANTS_PER_PROC];
 
-// Sincronizam toate procesele inainte de a porni cronometrul
+    // Sincronizam si pornim cronometrul
     MPI_Barrier(MPI_COMM_WORLD);
-    double start_time = MPI_Wtime(); // Pornim cronometrul
+    double start_time = MPI_Wtime();
 
     for (int step = 0; step <= T; step++) {
         
-        // --- NOU: Colectarea periodica ---
         if (step % K == 0) {
-            // Trimitem doar zona reala: &local_grid[1 * N]
             MPI_Gather(&local_grid[1 * N], local_N * N, MPI_INT, 
                        global_grid, local_N * N, MPI_INT, 
                        0, MPI_COMM_WORLD);
             
             if (rank == 0) {
                 save_frame(global_grid, N, step);
-                printf("Salvat cadru la pasul %d\n", step);
+                printf("Salvat cadru la pasul %d in folderul imagini/\n", step);
             }
         }
 
-        // 1. EXCHANGE GHOST ROWS
         MPI_Sendrecv(&local_grid[1 * N], N, MPI_INT, up_neighbor, 0,
                      &local_grid[(local_N + 1) * N], N, MPI_INT, down_neighbor, 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -98,7 +96,6 @@ int main(int argc, char **argv) {
                      &local_grid[0 * N], N, MPI_INT, up_neighbor, 1,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // 2. ACTUALIZARE AGENȚI
         int count_up = 0, count_down = 0;
         for (int i = num_local_ants - 1; i >= 0; i--) {
             int idx = local_ants[i].local_x * N + local_ants[i].y;
@@ -114,7 +111,6 @@ int main(int argc, char **argv) {
             local_ants[i].local_x += dx[local_ants[i].dir];
             local_ants[i].y = (local_ants[i].y + dy[local_ants[i].dir] + N) % N;
 
-            // 3. VERIFICARE MIGRARE
             if (local_ants[i].local_x == 0) { 
                 local_ants[i].local_x = local_N; 
                 send_up[count_up++] = local_ants[i];
@@ -127,7 +123,6 @@ int main(int argc, char **argv) {
             }
         }
 
-        // 4. PROTOCOLUL DE MIGRARE
         MPI_Request reqs[4];
         int req_count = 0;
 
@@ -158,15 +153,13 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
     double end_time = MPI_Wtime();
 
-    if (rank == 0) {
-        printf("Simulare finalizata! Timp executie: %f secunde pe %d procese.\n", end_time - start_time, size);
-    }
-
     if (rank == 0) free(global_grid);
     free(local_grid);
     MPI_Type_free(&MPI_ANT);
     
-    if (rank == 0) printf("Simulare MPI finalizata!\n");
+    if (rank == 0) {
+        printf("Simulare MPI finalizata! Timp executie: %f secunde pe %d procese.\n", end_time - start_time, size);
+    }
     
     MPI_Finalize();
     return 0;

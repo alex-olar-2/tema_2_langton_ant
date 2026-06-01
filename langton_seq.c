@@ -12,12 +12,14 @@ typedef struct {
 
 void save_ppm(int *grid, int N, Ant *ants, int num_ants, const char *filename) {
     FILE *f = fopen(filename, "w");
-    if (!f) return;
+    if (!f) {
+        printf("Eroare: Nu s-a putut deschide %s. Exista folderul 'imagini'?\n", filename);
+        return;
+    }
     
     fprintf(f, "P3\n%d %d\n255\n", N, N);
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            // Verificam daca pe celula curenta este o furnica
             int has_ant = 0;
             for(int a = 0; a < num_ants; a++) {
                 if(ants[a].x == i && ants[a].y == j) {
@@ -40,12 +42,10 @@ void save_ppm(int *grid, int N, Ant *ants, int num_ants, const char *filename) {
 }
 
 int main(int argc, char **argv) {
-    // Valori implicite
     int N = 1000; 
     int T = 100000;
     int num_ants = 1;
 
-    // Parsarea argumentelor din linia de comanda
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
             N = atoi(argv[++i]);
@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
     int *grid = (int *)calloc(N * N, sizeof(int));
     Ant *ants = (Ant *)malloc(num_ants * sizeof(Ant));
 
-    // Initializare aleatoare a furnicilor pe grila
     srand(time(NULL));
     for (int i = 0; i < num_ants; i++) {
         ants[i].x = rand() % N;
@@ -69,33 +68,32 @@ int main(int argc, char **argv) {
         ants[i].dir = rand() % 4;
     }
 
-    // Bucla principala
     for (int step = 0; step < T; step++) {
         for (int i = 0; i < num_ants; i++) {
             int idx = ants[i].x * N + ants[i].y;
             
             if (grid[idx] == 0) {
-                ants[i].dir = (ants[i].dir + 1) % 4; // Rotire dreapta
+                ants[i].dir = (ants[i].dir + 1) % 4; 
                 grid[idx] = 1;
             } else {
-                ants[i].dir = (ants[i].dir + 3) % 4; // Rotire stanga
+                ants[i].dir = (ants[i].dir + 3) % 4; 
                 grid[idx] = 0;
             }
 
             ants[i].x += dx[ants[i].dir];
             ants[i].y += dy[ants[i].dir];
 
-            // Grila toroidala (pastram furnicile in interior)
             ants[i].x = (ants[i].x + N) % N;
             ants[i].y = (ants[i].y + N) % N;
         }
     }
 
-    save_ppm(grid, N, ants, num_ants, "langton_multi.ppm");
+    // MODIFICARE: Calea de iesire este redirectionata catre folderul 'imagini'
+    save_ppm(grid, N, ants, num_ants, "imagini/langton_multi.ppm");
     
     free(grid);
     free(ants);
-    printf("Simulare completata. Rezultatul e in langton_multi.ppm\n");
+    printf("Simulare completata. Rezultatul e in imagini/langton_multi.ppm\n");
     
     return 0;
 }
