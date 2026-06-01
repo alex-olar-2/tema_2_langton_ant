@@ -36,3 +36,81 @@ Clonarea repository-ului și crearea directoarelor necesare (dacă nu au fost de
 git clone git@github.com:UsernameTau/tema_2_langton_ant.git
 cd tema_2_langton_ant
 mkdir -p executabile imagini rezultate scripturi
+
+### Compilarea versiunii secvențiale:
+
+```bash
+gcc -Wall -O2 langton_seq.c -o executabile/langton_seq
+
+```
+
+### Compilarea versiunii paralele (MPI):
+
+```bash
+mpicc -Wall -O2 langton_mpi.c -o executabile/langton_mpi
+
+```
+
+---
+
+## 🚀 Rularea Proiectului
+
+### 1. Versiunea Secvențială
+
+Versiunea secvențială acceptă argumente din linia de comandă (CLI) pentru parametrizare:
+
+* `-n` : Dimensiunea grilei (N x N)
+* `-t` : Numărul de pași ai simulării
+* `-ants` : Numărul de furnici generate aleatoriu pe grilă
+
+**Exemplu de rulare:**
+
+```bash
+./executabile/langton_seq -n 500 -t 50000 -ants 10
+
+```
+
+*Rezultatul va fi generat sub forma unui fișier `imagini/langton_multi.ppm`.*
+
+### 2. Versiunea Paralelă (MPI)
+
+Versiunea paralelă partiționează automat grila pe rânduri (1D) în funcție de numărul de procese specificat prin flag-ul `-np`.
+
+**Exemplu de rulare pe 4 procese:**
+
+```bash
+mpirun -np 4 ./executabile/langton_mpi
+
+```
+
+*Programul va exporta periodic cadre în format `.ppm` în folderul `imagini/` (pentru reconstrucția animației) și va afișa timpul total de execuție în consolă.*
+
+---
+
+## 📊 Benchmarking și Testare Performanță
+
+Pentru automatizarea testelor de scalabilitate (Strong Scaling), proiectul include un script de Bash care rulează simularea MPI pe 1, 2, 4, 8 și 16 procese succesiv, măsurând timpii.
+
+Înainte de prima rulare, asigură-te că scriptul are permisiuni de execuție:
+
+```bash
+chmod +x scripturi/run_benchmarks.sh
+
+```
+
+**Rularea suitei de teste:**
+
+```bash
+./scripturi/run_benchmarks.sh
+
+```
+
+*Rezultatele testelor vor fi formatate și salvate în fișierul `rezultate/rezultate_benchmark.txt`.*
+
+---
+
+**Notă tehnică:** Se recomandă vizualizarea cadrelor `.ppm` folosind utilitare standard Linux precum `display` (ImageMagick), `eog` sau convertoare online.
+
+```
+
+```
