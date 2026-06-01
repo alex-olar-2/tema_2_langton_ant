@@ -1,24 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-// Definim directiile: 0=SUS, 1=DREAPTA, 2=JOS, 3=STANGA
-int dx[] = {-1, 0, 1, 0};
+int dx[] = {-1, 0, 1, 0}; // SUS, DREAPTA, JOS, STANGA
 int dy[] = {0, 1, 0, -1};
 
-// Functie pentru exportul grilei in format PPM
-void save_ppm(int *grid, int N, int ant_x, int ant_y, const char *filename) {
+typedef struct {
+    int x, y, dir;
+} Ant;
+
+void save_ppm(int *grid, int N, Ant *ants, int num_ants, const char *filename) {
     FILE *f = fopen(filename, "w");
-    if (!f) {
-        printf("Eroare la crearea fisierului %s\n", filename);
-        return;
-    }
-    // Header format PPM (P3), latime inaltime, valoare maxima culoare
-    fprintf(f, "P3\n%d %d\n255\n", N, N);
+    if (!f) return;
     
+    fprintf(f, "P3\n%d %d\n255\n", N, N);
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            if (i == ant_x && j == ant_y) {
-                fprintf(f, "255 0 0 "); // Furnica desenata cu Rosu
+            // Verificam daca pe celula curenta este o furnica
+            int has_ant = 0;
+            for(int a = 0; a < num_ants; a++) {
+                if(ants[a].x == i && ants[a].y == j) {
+                    has_ant = 1;
+                    break;
+                }
+            }
+
+            if (has_ant) {
+                fprintf(f, "255 0 0 "); // Furnicile sunt rosii
             } else if (grid[i * N + j] == 0) {
                 fprintf(f, "255 255 255 "); // Alb
             } else {
@@ -31,45 +40,62 @@ void save_ppm(int *grid, int N, int ant_x, int ant_y, const char *filename) {
 }
 
 int main(int argc, char **argv) {
-    // Setam dimensiunile pentru testul recomandat in tema
+    // Valori implicite
     int N = 1000; 
-    int T = 100000; 
+    int T = 100000;
+    int num_ants = 1;
 
-    // Alocam grila ca un array 1D liniarizat (N x N)
-    // Folosim calloc pentru a initializa toate celulele cu 0 (Alb)
-    int *grid = (int *)calloc(N * N, sizeof(int));
-
-    // Pozitia initiala: centrul grilei
-    int ant_x = N / 2;
-    int ant_y = N / 2;
-    int dir = 0; // Priveste in SUS
-
-    // Simulam T pasi
-    for (int step = 0; step < T; step++) {
-        int idx = ant_x * N + ant_y;
-        
-        if (grid[idx] == 0) { // Celula alba
-            dir = (dir + 1) % 4; // 90 grade dreapta
-            grid[idx] = 1;       // Devine neagra
-        } else {              // Celula neagra
-            dir = (dir + 3) % 4; // 90 grade stanga (echivalent cu -1 in modul)
-            grid[idx] = 0;       // Devine alba
+    // Parsarea argumentelor din linia de comanda
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
+            N = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
+            T = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-ants") == 0 && i + 1 < argc) {
+            num_ants = atoi(argv[++i]);
         }
-
-        // Avanseaza un pas
-        ant_x += dx[dir];
-        ant_y += dy[dir];
-
-        // Pastram furnica in interiorul grilei (grila toroidala)
-        ant_x = (ant_x + N) % N;
-        ant_y = (ant_y + N) % N;
     }
 
-    // Exportam imaginea finala
-    save_ppm(grid, N, ant_x, ant_y, "langton_output.ppm");
+    printf("Pornire simulare: Grila %dx%d, %d pasi, %d furnici\n", N, N, T, num_ants);
+
+    int *grid = (int *)calloc(N * N, sizeof(int));
+    Ant *ants = (Ant *)malloc(num_ants * sizeof(Ant));
+
+    // Initializare aleatoare a furnicilor pe grila
+    srand(time(NULL));
+    for (int i = 0; i < num_ants; i++) {
+        ants[i].x = rand() % N;
+        ants[i].y = rand() % N;
+        ants[i].dir = rand() % 4;
+    }
+
+    // Bucla principala
+    for (int step = 0; step < T; step++) {
+        for (int i = 0; i < num_ants; i++) {
+            int idx = ants[i].x * N + ants[i].y;
+            
+            if (grid[idx] == 0) {
+                ants[i].dir = (ants[i].dir + 1) % 4; // Rotire dreapta
+                grid[idx] = 1;
+            } else {
+                ants[i].dir = (ants[i].dir + 3) % 4; // Rotire stanga
+                grid[idx] = 0;
+            }
+
+            ants[i].x += dx[ants[i].dir];
+            ants[i].y += dy[ants[i].dir];
+
+            // Grila toroidala (pastram furnicile in interior)
+            ants[i].x = (ants[i].x + N) % N;
+            ants[i].y = (ants[i].y + N) % N;
+        }
+    }
+
+    save_ppm(grid, N, ants, num_ants, "langton_multi.ppm");
     
     free(grid);
-    printf("Simularea secventiala s-a incheiat (%d pasi). Imaginea a fost salvata in langton_output.ppm\n", T);
+    free(ants);
+    printf("Simulare completata. Rezultatul e in langton_multi.ppm\n");
     
     return 0;
 }
